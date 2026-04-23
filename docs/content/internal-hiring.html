@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>社内採用ポータル</title>
+    <style>
+      :root {
+        --bg: #0b1220;
+        --card: #121b2e;
+        --text: #e6eefc;
+        --muted: #9eb0d3;
+        --accent: #55a3ff;
+        --ok: #35c47c;
+        --warn: #f2b84c;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        margin: 0;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: radial-gradient(circle at top right, #1b2a4c, var(--bg) 50%);
+        color: var(--text);
+        line-height: 1.6;
+      }
+
+      .container {
+        max-width: 1040px;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+
+      .hero {
+        display: grid;
+        gap: 24px;
+        grid-template-columns: 1.6fr 1fr;
+        align-items: center;
+      }
+
+      .badge {
+        display: inline-block;
+        color: #0f1e38;
+        background: #99c6ff;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 12px;
+        padding: 6px 10px;
+      }
+
+      h1 {
+        margin: 12px 0 8px;
+        font-size: clamp(30px, 5vw, 48px);
+        line-height: 1.15;
+      }
+
+      p.lead {
+        margin: 0;
+        color: var(--muted);
+        max-width: 58ch;
+      }
+
+      .card {
+        background: color(display-p3 0.08 0.12 0.2 / 0.85);
+        background: var(--card);
+        border: 1px solid #243350;
+        border-radius: 14px;
+        padding: 18px;
+      }
+
+      .stats {
+        display: grid;
+        gap: 12px;
+      }
+
+      .stats b {
+        display: block;
+        font-size: 22px;
+      }
+
+      .grid {
+        margin-top: 30px;
+        display: grid;
+        gap: 16px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+
+      .pill {
+        display: inline-block;
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: #1f2d4b;
+        color: #bdd2f7;
+      }
+
+      ul {
+        margin: 10px 0 0;
+        padding-left: 18px;
+      }
+
+      .cta {
+        margin-top: 30px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+
+      .btn {
+        text-decoration: none;
+        font-weight: 700;
+        border-radius: 10px;
+        padding: 10px 14px;
+        display: inline-block;
+      }
+
+      .btn-primary {
+        color: #fff;
+        background: linear-gradient(120deg, #3a8cff, var(--accent));
+      }
+
+      .btn-secondary {
+        color: #cfe1ff;
+        border: 1px solid #35507d;
+        background: #182742;
+      }
+
+      .status { margin-top: 26px; color: var(--muted); font-size: 14px; }
+      .ok { color: var(--ok); font-weight: 700; }
+      .warn { color: var(--warn); font-weight: 700; }
+
+      @media (max-width: 880px) {
+        .hero,
+        .grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="container">
+      <section class="hero">
+        <div>
+          <span class="badge">INTERNAL RECRUITING PORTAL</span>
+          <h1>社内採用を、速く安全に。</h1>
+          <p class="lead">
+            人事・現場・管理者が同じ画面で進捗を把握。SSO、監査ログ、権限制御を前提にした
+            社内向け求人フロントページのたたき台です。
+          </p>
+          <div class="cta">
+            <a class="btn btn-primary" href="#">求人を作成する</a>
+            <a class="btn btn-secondary" href="#">応募一覧を見る</a>
+          </div>
+          <p class="status">
+            セキュリティ状態: <span class="ok">正常</span> / MFA: <span class="ok">有効</span> /
+            監査ログ: <span class="warn">24時間内に3件の権限更新</span>
+          </p>
+        </div>
+
+        <aside class="card stats">
+          <div>
+            <span class="pill">今月の応募</span>
+            <b>128 件</b>
+          </div>
+          <div>
+            <span class="pill">面接中</span>
+            <b>42 名</b>
+          </div>
+          <div>
+            <span class="pill">承認待ち</span>
+            <b>11 件</b>
+          </div>
+        </aside>
+      </section>
+
+      <section class="grid">
+        <article class="card">
+          <span class="pill">求人管理</span>
+          <h2>求人票の作成・公開</h2>
+          <ul>
+            <li>職種・等級・年収レンジ設定</li>
+            <li>公開範囲を部署単位で制御</li>
+            <li>承認フロー付き下書き管理</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <span class="pill">選考管理</span>
+          <h2>候補者ステータス管理</h2>
+          <ul>
+            <li>書類選考〜内定まで一元管理</li>
+            <li>面接評価テンプレート登録</li>
+            <li>メール通知履歴の監査対応</li>
+          </ul>
+        </article>
+
+        <article class="card">
+          <span class="pill">セキュリティ</span>
+          <h2>社内利用に最適化</h2>
+          <ul>
+            <li>SSO + MFAを前提とした認証</li>
+            <li>ロールベース権限管理（RBAC）</li>
+            <li>操作ログの長期保存と検索</li>
+          </ul>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>
