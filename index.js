@@ -35,6 +35,46 @@ var caniuseFeaturesMap = {
   // autoprefixer: [null]
 }
 
+// Custom selectors must be prefixed by a colon (eg: `:--heading`).
+// cssnext used to accept the prefix-less syntax (`--heading`) as well, but that
+// syntax is invalid & harmful: since it is not anchored by a `:`, it also
+// matches the end of any other selector, so `.block--heading` is silently
+// mangled into `.block` + the custom selector value.
+// We keep transforming the prefix-less syntax for now, but warn about it.
+// It will be removed in the next major release.
+// https://github.com/cssnext/cssnext/issues/97
+var deprecatedCustomSelector = /^--[\w-]+$/
+
+function warnDeprecatedCustomSelectors(styles, result, options) {
+  var warned = {}
+
+  function warn(name, node) {
+    if (!deprecatedCustomSelector.test(name) || warned[name]) {
+      return
+    }
+    warned[name] = true
+
+    var message =
+      "Custom selector `" + name + "` is deprecated. " +
+      "Custom selectors must be prefixed by a colon: use `:" + name + "` " +
+      "instead. " +
+      "Support for the prefix-less syntax will be removed in cssnext 2.0."
+
+    result.warn(message, node ? {node: node} : undefined)
+    console.warn("cssnext: " + message)
+  }
+
+  // custom selectors defined from JS
+  var extensions = (options && options.extensions) || {}
+  Object.keys(extensions).forEach(function(name) {
+    warn(name)
+  })
+
+  styles.eachAtRule("custom-selector", function(rule) {
+    warn(rule.params.split(/\s+/)[0], rule)
+  })
+}
+
 var libraryFeatures = {
   // Reminder: order is important
   customProperties: function(options) {
@@ -50,7 +90,11 @@ var libraryFeatures = {
     return require("postcss-media-minmax")(options)
   },
   customSelectors: function(options) {
-    return require("postcss-custom-selectors")(options)
+    var customSelectors = require("postcss-custom-selectors")(options)
+    return function(styles, result) {
+      warnDeprecatedCustomSelectors(styles, result, options)
+      return customSelectors(styles, result)
+    }
   },
   colorRebeccapurple: function(options) {
     return require("postcss-color-rebeccapurple")(options)
