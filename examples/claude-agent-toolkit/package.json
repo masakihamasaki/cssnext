@@ -1,0 +1,28 @@
+{
+  "name": "claude-agent-toolkit-example",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Runnable TypeScript examples for the four Claude Platform agent primitives that went GA on 2026-08-21: computer use, the browser tool, the Skills API and the Files API.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.6.0"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "smoke": "node --experimental-strip-types scripts/smoke.ts",
+    "files": "node --experimental-strip-types examples/01-files.ts",
+    "skills": "node --experimental-strip-types examples/02-skills.ts",
+    "computer": "node --experimental-strip-types examples/03-computer.ts",
+    "browser": "node --experimental-strip-types examples/04-browser.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.120.0"
+  },
+  "optionalDependencies": {
+    "playwright": "^1.62.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.1",
+    "typescript": "^5.9.3"
+  }
+}
