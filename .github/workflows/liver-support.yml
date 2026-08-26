@@ -5,10 +5,7 @@
 name: liver-support
 
 on:
-  # PR ブランチへの push は pull_request 側で拾われるので、push は既定ブランチのみ。
-  # 両方に反応させると同じコミットで2回走る。
   push:
-    branches: [master]
     paths:
       - "liver-support/**"
       - ".github/workflows/liver-support.yml"
@@ -16,11 +13,6 @@ on:
     paths:
       - "liver-support/**"
       - ".github/workflows/liver-support.yml"
-
-# 続けて push したとき、古い実行は打ち切る
-concurrency:
-  group: liver-support-${{ github.ref }}
-  cancel-in-progress: true
 
 jobs:
   test:
