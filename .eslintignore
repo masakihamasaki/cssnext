@@ -1,0 +1,8 @@
+node_modules
+
+# standalone build
+dist
+docs/dist
+
+# 独立した Node ツール。cssnext 本体とは別の規約で書かれているため対象外
+liver-support

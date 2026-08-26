@@ -1,0 +1,28 @@
+lsw — ライバー支援 TikTok 投稿ワークフロー
+
+  node liver-support/bin/lsw.js <command> [options]
+
+コマンド
+  doctor    設定・素材・トークン・ffmpeg を点検する（まずこれ）
+  plan      素材 × フック × 投稿枠 を割り当てて投稿計画を作る
+  build     計画から動画を組み立てる（既定 dry-run: ffmpeg コマンドを出力）
+  queue     計画を投稿キュー(JSONL)に変換する
+  publish   予約時刻を過ぎたものを投稿する（既定 dry-run / 既定は下書き送り）
+  report    投稿結果 CSV をフック型別に集計する
+
+主なオプション
+  --config <path>   ライバー設定 (既定 liver-support/config/livers.json)
+  --hooks  <path>   フック定義 (既定 config/hooks.ja.json)
+  --out    <dir>    出力先 (既定 liver-support/build)
+  --days   <n>      計画日数 (既定 7)
+  --start  <date>   計画開始日 YYYY-MM-DD (既定 今日)
+  --seed   <text>   乱数シード。同じ seed なら同じ計画になる
+  --commit          plan の結果を履歴(state)に反映し、次回の重複を防ぐ
+  --execute         build/publish を実際に走らせる
+  --mode <inbox|direct>  publish 先。既定 inbox（本人の下書きに送る）
+  --metrics <path>  report が読む結果 CSV
+
+実行を伴う操作の前提
+  build --execute    ffmpeg が必要
+  publish --execute  環境変数 LSW_ALLOW_PUBLISH=1 と、アカウントごとの
+                     アクセストークン（設定の tokenEnv）が必要

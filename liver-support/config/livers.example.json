@@ -1,0 +1,109 @@
+{
+  "org": "◯◯ライバー事務所",
+  "hooksFile": "hooks.ja.json",
+  "defaults": {
+    "postsPerDay": 1,
+    "postTimes": ["19:30", "22:00"],
+    "clipCooldownDays": 14,
+    "hookCooldownDays": 7,
+    "maxHashtags": 5,
+    "hashtags": ["#ライバー", "#配信切り抜き"],
+    "video": {
+      "width": 1080,
+      "height": 1920,
+      "fps": 30,
+      "hookSeconds": 2.5,
+      "maxSeconds": 45,
+      "hookFontSize": 84,
+      "telopFontSize": 56,
+      "telopPerLine": 12,
+      "fontFile": "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc"
+    }
+  },
+  "livers": [
+    {
+      "id": "hina",
+      "name": "ひな",
+      "genre": "雑談",
+      "streamTime": "毎晩21時",
+      "cta": "毎晩21時から配信中。プロフィールから見に来て",
+      "hookTypes": ["共感", "意外性", "問いかけ", "認知獲得"],
+      "postTimes": ["19:30"],
+      "hashtags": ["#雑談配信"],
+      "accounts": [
+        {
+          "platform": "tiktok",
+          "handle": "@hina_live",
+          "tokenEnv": "TIKTOK_TOKEN_HINA",
+          "authorizedAt": "2026-08-01",
+          "note": "本人が OAuth 認可済み。解除されたら authorizedAt を消す"
+        }
+      ],
+      "clips": [
+        {
+          "id": "hina-001",
+          "file": "../assets/hina/001.mp4",
+          "title": "コメント読み間違えて大爆笑",
+          "topic": "コメントの読み間違い",
+          "tags": ["雑談", "ハプニング"],
+          "telop": "コメント、盛大に読み間違えた",
+          "highlightAt": 4,
+          "consent": true
+        },
+        {
+          "id": "hina-002",
+          "file": "../assets/hina/002.mp4",
+          "title": "初見リスナーへの神対応",
+          "topic": "初見さんへの対応",
+          "tags": ["雑談", "神対応"],
+          "highlightAt": 0,
+          "consent": true
+        }
+      ]
+    },
+    {
+      "id": "ren",
+      "name": "れん",
+      "genre": "ゲーム",
+      "streamTime": "平日22時",
+      "cta": "平日22時から配信中",
+      "hookTypes": ["意外性", "実演", "損失回避"],
+      "accounts": [
+        {
+          "platform": "tiktok",
+          "handle": "@ren_games",
+          "tokenEnv": "TIKTOK_TOKEN_REN",
+          "authorizedAt": "2026-08-10"
+        }
+      ],
+      "clips": [
+        {
+          "id": "ren-001",
+          "file": "../assets/ren/001.mp4",
+          "title": "残り1秒からの逆転",
+          "topic": "残り1秒の逆転",
+          "tags": ["ゲーム実況"],
+          "highlightAt": 2,
+          "consent": true
+        }
+      ]
+    },
+    {
+      "id": "mio",
+      "name": "みお",
+      "genre": "歌",
+      "accounts": [
+        { "platform": "tiktok", "handle": "@mio_sings", "tokenEnv": "TIKTOK_TOKEN_MIO" }
+      ],
+      "clips": [
+        {
+          "id": "mio-001",
+          "file": "../assets/mio/001.mp4",
+          "title": "歌ってみた",
+          "consent": false,
+          "note": "同意待ち。この状態では計画に乗らない（doctor / plan が warn を出す）"
+        }
+      ]
+    }
+  ]
+}
