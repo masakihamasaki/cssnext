@@ -5,7 +5,10 @@
 name: liver-support
 
 on:
+  # PR ブランチへの push は pull_request 側で拾われる。
+  # 両方に反応させると 1 push で 2 run 走るので、push は既定ブランチのみ。
   push:
+    branches: [master]
     paths:
       - "liver-support/**"
       - ".github/workflows/liver-support.yml"
