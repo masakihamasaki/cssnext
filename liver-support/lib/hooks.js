@@ -45,9 +45,29 @@ function chooseHook(liver, clip, hooks, seed, isBlocked) {
   return order.find((h) => !isBlocked || !isBlocked(h)) || null
 }
 
+/**
+ * 切り口テスト用に、型の異なるフックを n 本選ぶ。
+ * 文言違いではなく型違いにするのは、同じ型の言い回し比較では差が出にくいため。
+ */
+function chooseHooks(liver, clip, hooks, seed, n, isBlocked) {
+  const picked = []
+  const usedTypes = new Set()
+  for (let i = 0; i < n; i++) {
+    const hook = chooseHook(liver, clip, hooks, `${seed}:v${i}`, (h) => {
+      if (usedTypes.has(h.type)) return true
+      if (picked.some((p) => p.id === h.id)) return true
+      return Boolean(isBlocked && isBlocked(h))
+    })
+    if (!hook) break
+    picked.push(hook)
+    usedTypes.add(hook.type)
+  }
+  return picked
+}
+
 /** テロップ用に行分割したフック。1行あたりの文字数は縦動画の可読性から12文字が既定。 */
 function hookLines(text, perLine) {
   return wrapJa(text, perLine || 12)
 }
 
-module.exports = { hookVars, candidates, chooseHook, hookLines }
+module.exports = { hookVars, candidates, chooseHook, chooseHooks, hookLines }

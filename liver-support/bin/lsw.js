@@ -5,6 +5,7 @@
  * lsw — liver support workflow
  *
  *   plan    素材 × フック × 投稿枠 を割り当てて投稿計画を作る
+ *   prompts AI生成素材レーンのプロンプト表を出す
  *   build   計画から動画を組み立てる（既定は dry-run: ffmpeg コマンドを出すだけ）
  *   queue   計画を投稿キュー(JSONL)に変換する
  *   publish キューの予約時刻を過ぎたものを投稿する（既定は dry-run）
@@ -20,6 +21,7 @@ const { renderCommand, hasFfmpeg, toShell, execute, writeTextFiles } = require("
 const { toQueue, writeQueue, readQueue, due } = require("../lib/queue")
 const { publish } = require("../lib/publish")
 const { report } = require("../lib/report")
+const { promptSheet, toMarkdown } = require("../lib/aiprompts")
 
 function parseArgs(argv) {
   const args = { _: [] }
@@ -69,6 +71,7 @@ const commands = {
       days: Number(args.days || 7),
       startDate: args.start || null,
       seed: args.seed || "lsw",
+      experiment: args.experiment === undefined ? undefined : args.experiment !== "false",
       state: loadState(statePath),
       outDir,
     })
@@ -76,7 +79,20 @@ const commands = {
     fs.writeFileSync(planFile(), JSON.stringify(plan, null, 2) + "\n")
     console.log(`投稿計画 ${plan.posts.length}本 → ${planFile()}`)
     for (const p of plan.posts) {
-      console.log(`  ${p.publishAt}  ${p.handle}  [${p.hookType}] ${p.hookText}  (${p.clipId})`)
+      const marks = [
+        p.variantId ? `テスト${p.variantId}/${p.variants}` : null,
+        p.containsAi ? "AI素材" : null,
+      ].filter(Boolean)
+      console.log(
+        `  ${p.publishAt}  ${p.handle}  [${p.hookType}] ${p.hookText}  (${p.clipId}` +
+          `${p.segmentId && p.segmentId !== p.clipId + "-full" ? "/" + p.segmentId : ""})` +
+          (marks.length ? `  ${marks.join(" ")}` : "")
+      )
+    }
+    const running = plan.posts.filter((p) => p.experimentId)
+    if (running.length) {
+      const ids = [...new Set(running.map((p) => p.experimentId))]
+      console.log(`  切り口テスト ${ids.length}件 / 投稿 ${running.length}本: ${ids.join(", ")}`)
     }
     for (const s of plan.skipped) console.log(`  [skip] ${s.date} ${s.liverId}: ${s.reason}`)
     if (args.commit) {
@@ -88,8 +104,11 @@ const commands = {
           publishAt: p.publishAt,
           liverId: p.liverId,
           clipId: p.clipId,
+          segmentId: p.segmentId,
           hookId: p.hookId,
           hookText: p.hookText,
+          experimentId: p.experimentId,
+          variantId: p.variantId,
         }))
       )
       saveState(statePath, state)
@@ -140,16 +159,19 @@ const commands = {
     const entries = readQueue(queueFile())
     const target = args.all ? entries.filter((e) => e.status === "pending") : due(entries, args.now)
     const mode = args.mode || "inbox"
+    const ai = fs.existsSync(configPath) ? loadConfig(configPath, args.hooks).defaults.ai : undefined
     if (!target.length) {
       console.log("投稿対象なし（予約時刻前、または全て処理済み）")
       return
     }
     for (const entry of target) {
-      const res = await publish(entry, { execute: Boolean(args.execute), mode })
+      const res = await publish(entry, { execute: Boolean(args.execute), mode, ai })
       if (res.dryRun) {
         console.log(`[dry-run] ${entry.id} → ${entry.handle} (${mode})`)
         console.log(`  token(${res.plan.tokenEnv}): ${res.plan.tokenPresent ? "あり" : "なし"}`)
         console.log(`  video: ${res.plan.video} ${res.plan.videoSize === null ? "(未生成)" : res.plan.videoSize + "B"}`)
+        if (res.plan.containsAi) console.log("  AI生成素材を含む（キャプションに開示あり）")
+        if (res.plan.blocked) console.log(`  [block] ${res.plan.blocked}`)
         res.plan.steps.forEach((s) => console.log(`  ${s}`))
         continue
       }
@@ -169,7 +191,10 @@ const commands = {
 
   report() {
     const metricsFile = path.resolve(args.metrics || path.join(root, "config/metrics.example.csv"))
-    const r = report(metricsFile, readQueue(queueFile()))
+    const thresholds = fs.existsSync(configPath)
+      ? loadConfig(configPath, args.hooks).defaults.experiment
+      : undefined
+    const r = report(metricsFile, readQueue(queueFile()), { experiment: thresholds })
     const table = (rows) =>
       rows.forEach((x) =>
         console.log(
@@ -185,6 +210,41 @@ const commands = {
     table(r.byHook)
     console.log("\nライバー別")
     table(r.byLiver)
+
+    if (r.experiments.length) {
+      console.log("\n切り口テスト")
+      for (const e of r.experiments) {
+        console.log(`  ${e.id}`)
+        for (const v of e.variants) {
+          console.log(
+            `    [${v.hookType}] ${v.hookId}  本数${v.posts}  ` +
+              `3秒維持 ${(v.retention3s * 100).toFixed(1)}%  再生 ${v.views}` +
+              (v.qualified ? "" : "  ※判定対象外")
+          )
+        }
+        console.log(
+          e.decided
+            ? `    → 勝ち: ${e.winner.hookId} [${e.winner.hookType}]。この型を増やし、下位の型は外す`
+            : `    → 判定保留: ${e.reason}` +
+              (e.leading ? `（現時点の先行は ${e.leading.hookId}）` : "")
+        )
+      }
+    }
+  },
+
+  prompts() {
+    const config = needConfig()
+    const aiPrompts = readJson(path.resolve(args.prompts || path.join(root, "config/ai-prompts.ja.json")))
+    const sheets = promptSheet(config, aiPrompts, {
+      liverId: args.liver,
+      count: Number(args.count || 1),
+    })
+    const md = toMarkdown(sheets)
+    fs.mkdirSync(outDir, { recursive: true })
+    const file = path.join(outDir, "prompts.md")
+    fs.writeFileSync(file, md)
+    console.log(md)
+    console.log(`→ ${file}`)
   },
 
   doctor() {
@@ -203,7 +263,21 @@ const commands = {
             `1日${perDay}本なら${needed}本必要（不足分は投稿枠が空く）`
         )
       }
+      const aiClips = l.clips.filter((c) => c.source === "ai")
+      if (aiClips.length) console.log(`    AI生成素材 ${aiClips.length}本（キャプションに開示が入る）`)
+      if ((l.pendingClips || []).length) {
+        console.log(`    生成待ち ${l.pendingClips.length}本（lsw prompts でプロンプトを出す）`)
+      }
+      const segs = l.clips.filter((c) => c.segments.length > 1).length
+      if (config.defaults.experiment.enabled && !segs) {
+        console.log("    [warn] segments を持つ素材が無い。切り口テストはフック違いだけになる")
+      }
     }
+    const exp = config.defaults.experiment
+    console.log(
+      `切り口テスト: ${exp.enabled ? "有効" : "無効"}（最大${exp.maxVariants}本 / ${exp.intervalDays}日間隔 / ` +
+        `判定は各${exp.minPostsPerVariant}本・${exp.minViewsPerVariant}再生から）`
+    )
     console.log(`ffmpeg: ${hasFfmpeg() ? "あり" : "なし（build は dry-run のみ）"}`)
     if (!config.defaults.video.fontFile) {
       console.log("[warn] video.fontFile 未設定。日本語テロップが豆腐になるので日本語フォントを指定すること。")

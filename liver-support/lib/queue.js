@@ -16,6 +16,11 @@ function toQueue(plan) {
     hookId: p.hookId,
     hookType: p.hookType,
     clipId: p.clipId,
+    segmentId: p.segmentId,
+    clipSource: p.clipSource,
+    containsAi: Boolean(p.containsAi),
+    experimentId: p.experimentId,
+    variantId: p.variantId,
     video: p.output,
     caption: p.caption,
   }))

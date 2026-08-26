@@ -3,11 +3,17 @@
   "hooksFile": "hooks.ja.json",
   "defaults": {
     "postsPerDay": 1,
-    "postTimes": ["19:30", "22:00"],
+    "postTimes": [
+      "19:30",
+      "22:00"
+    ],
     "clipCooldownDays": 14,
     "hookCooldownDays": 7,
     "maxHashtags": 5,
-    "hashtags": ["#ライバー", "#配信切り抜き"],
+    "hashtags": [
+      "#ライバー",
+      "#配信切り抜き"
+    ],
     "video": {
       "width": 1080,
       "height": 1920,
@@ -18,6 +24,19 @@
       "telopFontSize": 56,
       "telopPerLine": 12,
       "fontFile": "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc"
+    },
+    "experiment": {
+      "enabled": true,
+      "maxVariants": 3,
+      "intervalDays": 3,
+      "minPostsPerVariant": 2,
+      "minViewsPerVariant": 1000
+    },
+    "ai": {
+      "disclosureText": "※この動画にはAI生成の映像が含まれます",
+      "disclosureTag": "#AI生成",
+      "forceInbox": true,
+      "sendAigcFlag": false
     }
   },
   "livers": [
@@ -27,9 +46,18 @@
       "genre": "雑談",
       "streamTime": "毎晩21時",
       "cta": "毎晩21時から配信中。プロフィールから見に来て",
-      "hookTypes": ["共感", "意外性", "問いかけ", "認知獲得"],
-      "postTimes": ["19:30"],
-      "hashtags": ["#雑談配信"],
+      "hookTypes": [
+        "共感",
+        "意外性",
+        "問いかけ",
+        "認知獲得"
+      ],
+      "postTimes": [
+        "19:30"
+      ],
+      "hashtags": [
+        "#雑談配信"
+      ],
       "accounts": [
         {
           "platform": "tiktok",
@@ -45,17 +73,43 @@
           "file": "../assets/hina/001.mp4",
           "title": "コメント読み間違えて大爆笑",
           "topic": "コメントの読み間違い",
-          "tags": ["雑談", "ハプニング"],
+          "tags": [
+            "雑談",
+            "ハプニング"
+          ],
           "telop": "コメント、盛大に読み間違えた",
           "highlightAt": 4,
-          "consent": true
+          "consent": true,
+          "segments": [
+            {
+              "id": "hina-001-a",
+              "start": 4,
+              "telop": "コメント、盛大に読み間違えた",
+              "topic": "コメントの読み間違い"
+            },
+            {
+              "id": "hina-001-b",
+              "start": 18,
+              "telop": "リスナーに総ツッコミされる",
+              "topic": "リスナーのツッコミ"
+            },
+            {
+              "id": "hina-001-c",
+              "start": 31,
+              "telop": "開き直って押し切る",
+              "topic": "開き直り"
+            }
+          ]
         },
         {
           "id": "hina-002",
           "file": "../assets/hina/002.mp4",
           "title": "初見リスナーへの神対応",
           "topic": "初見さんへの対応",
-          "tags": ["雑談", "神対応"],
+          "tags": [
+            "雑談",
+            "神対応"
+          ],
           "highlightAt": 0,
           "consent": true
         }
@@ -67,7 +121,11 @@
       "genre": "ゲーム",
       "streamTime": "平日22時",
       "cta": "平日22時から配信中",
-      "hookTypes": ["意外性", "実演", "損失回避"],
+      "hookTypes": [
+        "意外性",
+        "実演",
+        "損失回避"
+      ],
       "accounts": [
         {
           "platform": "tiktok",
@@ -82,9 +140,39 @@
           "file": "../assets/ren/001.mp4",
           "title": "残り1秒からの逆転",
           "topic": "残り1秒の逆転",
-          "tags": ["ゲーム実況"],
+          "tags": [
+            "ゲーム実況"
+          ],
           "highlightAt": 2,
           "consent": true
+        },
+        {
+          "id": "ren-ai-001",
+          "source": "ai",
+          "file": "../assets/ren/ai-001.mp4",
+          "title": "グッズの商品カット（AI生成）",
+          "topic": "新作アクスタ",
+          "tags": [
+            "グッズ"
+          ],
+          "telop": "新作グッズ、明日から",
+          "prompt": "縦型9:16、5秒。無地の背景に置かれたアクリルスタンドを、手だけがゆっくり回して見せる。自然光、影は柔らかく。落ち着いた色味。顔は写さない。ロゴや文字は入れない。",
+          "model": "（使用した動画生成モデル名を記録する）",
+          "depictsLiver": false,
+          "note": "本人が映らない補助映像。キャプションに開示が自動で入り、直接公開は禁止される"
+        },
+        {
+          "id": "ren-ai-002",
+          "source": "ai",
+          "pending": true,
+          "templateId": "broll-desk",
+          "spec": {
+            "place": "夜の自室",
+            "product": "配信用マイク",
+            "mood": "落ち着いた",
+            "seconds": 5
+          },
+          "note": "生成待ち。lsw prompts でプロンプトを出し、生成後に file と prompt を埋めて pending を外す"
         }
       ]
     },
@@ -93,7 +181,11 @@
       "name": "みお",
       "genre": "歌",
       "accounts": [
-        { "platform": "tiktok", "handle": "@mio_sings", "tokenEnv": "TIKTOK_TOKEN_MIO" }
+        {
+          "platform": "tiktok",
+          "handle": "@mio_sings",
+          "tokenEnv": "TIKTOK_TOKEN_MIO"
+        }
       ],
       "clips": [
         {

@@ -23,7 +23,7 @@ function initEndpoint(mode) {
     : `${API}/post/publish/inbox/video/init/`
 }
 
-function initBody(entry, size, mode) {
+function initBody(entry, size, mode, opts) {
   const source_info = {
     source: "FILE_UPLOAD",
     video_size: size,
@@ -31,19 +31,32 @@ function initBody(entry, size, mode) {
     total_chunk_count: Math.max(1, Math.ceil(size / CHUNK)),
   }
   if (mode !== "direct") return { source_info }
-  return {
-    post_info: {
-      title: entry.caption,
-      privacy_level: entry.privacyLevel || "SELF_ONLY",
-      disable_duet: false,
-      disable_comment: false,
-      disable_stitch: false,
-    },
-    source_info,
+  const post_info = {
+    title: entry.caption,
+    privacy_level: entry.privacyLevel || "SELF_ONLY",
+    disable_duet: false,
+    disable_comment: false,
+    disable_stitch: false,
   }
+  // AIGC ラベルのフィールド名は API 側で変わりうるので、送るかどうかは設定で切る。
+  // 送らない場合もキャプション側の開示は必ず入っている（lib/caption.js）。
+  if (entry.containsAi && opts && opts.sendAigcFlag) post_info.is_aigc = true
+  return { post_info, source_info }
 }
 
-function describe(entry, mode) {
+/**
+ * AI生成素材を含む投稿の直接公開を止める。
+ * 開示が要る投稿ほど、本人が中身を見てから出すべきなので既定は下書き固定。
+ */
+function aiGuard(entry, mode, ai) {
+  if (!entry.containsAi) return null
+  if (mode === "direct" && (!ai || ai.forceInbox !== false)) {
+    return "AI生成素材を含む投稿の直接公開は既定で禁止（ai.forceInbox を false にするか inbox で送ること）"
+  }
+  return null
+}
+
+function describe(entry, mode, ai) {
   const size = fs.existsSync(entry.video) ? fs.statSync(entry.video).size : null
   return {
     id: entry.id,
@@ -53,18 +66,23 @@ function describe(entry, mode) {
     tokenPresent: Boolean(process.env[entry.tokenEnv]),
     video: entry.video,
     videoSize: size,
+    containsAi: Boolean(entry.containsAi),
+    blocked: aiGuard(entry, mode, ai),
     steps: [
       `POST ${initEndpoint(mode)}`,
       "PUT <upload_url>  (Content-Range / video/mp4)",
       `POST ${API}/post/publish/status/fetch/`,
     ],
-    body: size === null ? null : initBody(entry, size, mode),
+    body: size === null ? null : initBody(entry, size, mode, ai),
   }
 }
 
 async function publish(entry, opts) {
   const mode = (opts && opts.mode) || "inbox"
-  if (!opts || !opts.execute) return { ok: true, dryRun: true, plan: describe(entry, mode) }
+  const ai = (opts && opts.ai) || {}
+  if (!opts || !opts.execute) return { ok: true, dryRun: true, plan: describe(entry, mode, ai) }
+  const blocked = aiGuard(entry, mode, ai)
+  if (blocked) return { ok: false, error: blocked }
   if (process.env.LSW_ALLOW_PUBLISH !== "1") {
     return { ok: false, error: "LSW_ALLOW_PUBLISH=1 が未設定のため実行しない" }
   }
@@ -80,7 +98,7 @@ async function publish(entry, opts) {
   const initRes = await fetch(initEndpoint(mode), {
     method: "POST",
     headers,
-    body: JSON.stringify(initBody(entry, size, mode)),
+    body: JSON.stringify(initBody(entry, size, mode, ai)),
   })
   const init = await initRes.json()
   if (!initRes.ok || (init.error && init.error.code !== "ok")) {
@@ -111,4 +129,4 @@ async function publish(entry, opts) {
   return { ok: true, publishId: publish_id, status: status.data || status }
 }
 
-module.exports = { publish, describe, initBody, initEndpoint }
+module.exports = { publish, describe, initBody, initEndpoint, aiGuard }

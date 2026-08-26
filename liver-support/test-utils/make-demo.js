@@ -18,6 +18,8 @@ const example = JSON.parse(fs.readFileSync(path.join(root, "config/livers.exampl
 fs.mkdirSync(out, { recursive: true })
 for (const liver of example.livers) {
   for (const clip of liver.clips) {
+    // 生成待ちの AI 素材はファイルを作らない（lsw prompts の対象として残す）
+    if (clip.pending === true || !clip.file) continue
     const file = path.join(out, path.basename(path.dirname(clip.file)), path.basename(clip.file))
     fs.mkdirSync(path.dirname(file), { recursive: true })
     if (!fs.existsSync(file)) fs.writeFileSync(file, "dummy mp4 (デモ用の空ファイル)")

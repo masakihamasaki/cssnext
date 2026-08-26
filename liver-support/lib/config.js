@@ -24,6 +24,25 @@ const DEFAULTS = {
   },
   hashtags: ["#ライバー", "#切り抜き"],
   maxHashtags: 5,
+  // 切り口テスト。同じ素材に複数のフックを当てて、どの切り口が刺さるかを測る。
+  experiment: {
+    enabled: false,
+    maxVariants: 3,
+    // バリエーション同士の間隔。短すぎると同じ素材が続けて出るので3日を下限にする。
+    intervalDays: 3,
+    // 勝ち負けを判定してよい最低ライン。これを割ったら「判定保留」。
+    minPostsPerVariant: 2,
+    minViewsPerVariant: 1000,
+  },
+  // AI生成素材レーン。本人が映らない補助映像（商品カット・背景・b-roll）を想定。
+  ai: {
+    disclosureText: "※この動画にはAI生成の映像が含まれます",
+    disclosureTag: "#AI生成",
+    // AI素材を含む投稿は本人の下書きに送る。直接公開はさせない。
+    forceInbox: true,
+    // 投稿APIに AIGC フラグを送るか。フィールド名は要検証なので既定は off。
+    sendAigcFlag: false,
+  },
 }
 
 function readJson(file) {
@@ -35,14 +54,60 @@ function mergeVideo(base, over) {
 }
 
 /**
+ * 素材ごとの同意チェック。
+ *
+ * 実写の切り抜きは本人の利用同意 (consent) が要る。
+ * AI生成素材は本人が映らない前提なので consent は問わないが、
+ * 本人の姿を生成する (depictsLiver) なら肖像の明示同意 (likenessConsent) が要る。
+ * 何を生成したかを後から辿れるよう prompt の記録も必須にする。
+ */
+function checkClipConsent(liver, clip, warnings) {
+  if (clip.source !== "ai") {
+    if (clip.consent !== true) {
+      warnings.push(`${liver.id}/${clip.id}: 切り抜き利用の同意(consent)が無いため除外`)
+      return false
+    }
+    return true
+  }
+  if (!clip.prompt) {
+    warnings.push(`${liver.id}/${clip.id}: AI素材に生成プロンプトの記録が無いため除外`)
+    return false
+  }
+  if (clip.depictsLiver === true && clip.likenessConsent !== true) {
+    warnings.push(
+      `${liver.id}/${clip.id}: 本人の姿を生成するAI素材に肖像の明示同意(likenessConsent)が無いため除外`
+    )
+    return false
+  }
+  return true
+}
+
+/** 1本の素材の中の「見せどころ」。切り口テストではここも変える。 */
+function normalizeSegments(clip) {
+  const list = (clip.segments || []).filter((s) => s && s.id)
+  if (list.length) return list
+  return [
+    {
+      id: `${clip.id}-full`,
+      start: clip.highlightAt || 0,
+      telop: clip.telop || "",
+      topic: clip.topic || "",
+    },
+  ]
+}
+
+/**
  * livers 設定を読み込み、運用ガードレールに照らして検証する。
  * ここで弾いたものは投稿計画に一切乗らない（= 事故の入口を塞ぐ）。
  */
 function loadConfig(configPath, hooksPath) {
   const raw = readJson(configPath)
   const dir = path.dirname(path.resolve(configPath))
-  const defaults = Object.assign({}, DEFAULTS, raw.defaults || {}, {
-    video: mergeVideo(DEFAULTS.video, (raw.defaults || {}).video),
+  const rawDefaults = raw.defaults || {}
+  const defaults = Object.assign({}, DEFAULTS, rawDefaults, {
+    video: mergeVideo(DEFAULTS.video, rawDefaults.video),
+    experiment: mergeVideo(DEFAULTS.experiment, rawDefaults.experiment),
+    ai: mergeVideo(DEFAULTS.ai, rawDefaults.ai),
   })
 
   const hooksFile = hooksPath
@@ -70,13 +135,16 @@ function loadConfig(configPath, hooksPath) {
       continue
     }
 
+    // 生成待ちの AI 素材は投稿計画には乗せず、プロンプト出力の対象としてだけ持つ。
+    const pendingClips = (liver.clips || []).filter(
+      (c) => c.source === "ai" && c.pending === true
+    )
+
     const clips = (liver.clips || []).filter((c) => {
-      if (c.consent !== true) {
-        warnings.push(`${liver.id}/${c.id}: 切り抜き利用の同意(consent)が無いため除外`)
-        return false
-      }
-      const file = path.resolve(dir, c.file)
-      if (!fs.existsSync(file)) {
+      if (c.pending === true) return false
+      if (!checkClipConsent(liver, c, warnings)) return false
+      const file = path.resolve(dir, c.file || "")
+      if (!c.file || !fs.existsSync(file)) {
         warnings.push(`${liver.id}/${c.id}: 素材が見つからない (${c.file})`)
         return false
       }
@@ -90,7 +158,14 @@ function loadConfig(configPath, hooksPath) {
     livers.push(
       Object.assign({}, liver, {
         accounts,
-        clips: clips.map((c) => Object.assign({}, c, { path: path.resolve(dir, c.file) })),
+        clips: clips.map((c) =>
+          Object.assign({}, c, {
+            source: c.source || "clip",
+            path: path.resolve(dir, c.file),
+            segments: normalizeSegments(c),
+          })
+        ),
+        pendingClips,
         postTimes: liver.postTimes || defaults.postTimes,
         hashtags: (defaults.hashtags || []).concat(liver.hashtags || []),
         video: mergeVideo(defaults.video, liver.video),
@@ -115,4 +190,4 @@ function saveState(stateFile, state) {
   fs.writeFileSync(stateFile, JSON.stringify(state, null, 2) + "\n")
 }
 
-module.exports = { DEFAULTS, loadConfig, loadState, saveState, readJson }
+module.exports = { DEFAULTS, loadConfig, loadState, saveState, readJson, normalizeSegments }

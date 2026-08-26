@@ -51,14 +51,77 @@ function aggregate(metrics, queue, key) {
     .sort((a, b) => b.retention3s - a.retention3s)
 }
 
-function report(metricsFile, queue) {
+/**
+ * 切り口テストの判定。
+ *
+ * 同じ素材に当てた型違いのフックを比べ、3秒維持率が最も高いものを勝ちとする。
+ * ただしサンプルが薄いうちは判定しない。少ない本数で決め打つと、
+ * たまたま伸びた1本を「勝ちパターン」と誤認して以後ずっと引きずる。
+ */
+function experiments(metrics, queue, thresholds) {
+  const th = Object.assign({ minPostsPerVariant: 2, minViewsPerVariant: 1000 }, thresholds)
+  const index = new Map(queue.map((q) => [q.id, q]))
+  const groups = new Map()
+  for (const m of metrics) {
+    const q = index.get(m.post_id)
+    if (!q || !q.experimentId) continue
+    if (!groups.has(q.experimentId)) groups.set(q.experimentId, new Map())
+    const variants = groups.get(q.experimentId)
+    // 週をまたいでラウンドを重ねると同じフックに結果が積み上がる。
+    // だから変化の単位（=フック）で束ねる。ラウンド内の並び順ではない。
+    const key = q.hookId
+    if (!variants.has(key)) {
+      variants.set(key, { variantId: q.variantId, hookId: q.hookId, hookType: q.hookType, rows: [] })
+    }
+    variants.get(key).rows.push(m)
+  }
+
+  return [...groups.entries()].map(([id, variants]) => {
+    const list = [...variants.values()]
+      .map((v) => {
+        const posts = v.rows.length
+        const views = Math.round(mean(v.rows.map((m) => m.views || 0)))
+        return {
+          variantId: v.variantId,
+          hookId: v.hookId,
+          hookType: v.hookType,
+          posts,
+          views,
+          retention3s: Number(mean(v.rows.map((m) => m.retention3s || 0)).toFixed(3)),
+          follows: Math.round(mean(v.rows.map((m) => m.follows || 0))),
+          qualified: posts >= th.minPostsPerVariant && views >= th.minViewsPerVariant,
+        }
+      })
+      .sort((a, b) => b.retention3s - a.retention3s)
+
+    // 判定に使うのは本数と再生数の条件を満たしたバリエーションだけ。
+    // 1本しか出していない切り口を勝ち負けの材料にすると、たまたま伸びた1本を
+    // 「勝ちパターン」と誤認して以後ずっと引きずる。
+    const qualified = list.filter((v) => v.qualified)
+    const decided = qualified.length >= 2
+    return {
+      id,
+      variants: list,
+      decided,
+      winner: decided ? qualified[0] : null,
+      leading: list[0] || null,
+      reason: decided
+        ? null
+        : `判定材料が足りない（各切り口 ${th.minPostsPerVariant}本 / ${th.minViewsPerVariant}再生 以上で判定。` +
+          `条件を満たしたのは ${qualified.length} 本）`,
+    }
+  })
+}
+
+function report(metricsFile, queue, options) {
   const metrics = parseCsv(fs.readFileSync(metricsFile, "utf8"))
   return {
     total: metrics.length,
     byHookType: aggregate(metrics, queue, "hookType"),
     byLiver: aggregate(metrics, queue, "liverId"),
     byHook: aggregate(metrics, queue, "hookId"),
+    experiments: experiments(metrics, queue, options && options.experiment),
   }
 }
 
-module.exports = { report, aggregate, parseCsv }
+module.exports = { report, aggregate, parseCsv, experiments }
