@@ -11,6 +11,7 @@
  *   publish キューの予約時刻を過ぎたものを投稿する（既定は dry-run）
  *   report  投稿結果 CSV をフック型別に集計する
  *   doctor  設定と実行環境を点検する
+ *   verify  実際に ffmpeg を回して、出てきた動画の中身を検査する
  */
 
 const fs = require("fs")
@@ -22,6 +23,8 @@ const { toQueue, writeQueue, readQueue, due } = require("../lib/queue")
 const { publish } = require("../lib/publish")
 const { report } = require("../lib/report")
 const { promptSheet, toMarkdown } = require("../lib/aiprompts")
+const { verify, hasFfprobe } = require("../lib/verify")
+const { missingGlyphs } = require("../lib/font")
 
 function parseArgs(argv) {
   const args = { _: [] }
@@ -247,6 +250,40 @@ const commands = {
     console.log(`→ ${file}`)
   },
 
+  verify() {
+    if (!hasFfmpeg() || !hasFfprobe()) {
+      console.error("ffmpeg / ffprobe が必要（apt-get install ffmpeg など）")
+      process.exit(1)
+    }
+    // 設定があればそのフォントで検証する。無ければ引数か既定の日本語フォント。
+    let fontFile = args.font
+    if (!fontFile && fs.existsSync(configPath)) {
+      fontFile = loadConfig(configPath, args.hooks).defaults.video.fontFile
+    }
+    if (!fontFile) {
+      for (const candidate of [
+        "/usr/share/fonts/truetype/fonts-japanese-gothic.ttf",
+        "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+        "/usr/share/fonts/truetype/noto/NotoSansCJK-Bold.ttc",
+      ]) {
+        if (fs.existsSync(candidate)) {
+          fontFile = candidate
+          break
+        }
+      }
+    }
+
+    const result = verify({ fontFile, dir: args.dir })
+    for (const r of result.results) {
+      console.log(`  ${r.ok ? "ok  " : "NG  "}${r.name}: ${r.detail}`)
+    }
+    console.log(
+      `${result.results.filter((r) => r.ok).length}/${result.results.length} 項目が通過` +
+        `（生成物: ${result.dir}）`
+    )
+    if (!result.ok) process.exit(1)
+  },
+
   doctor() {
     const config = needConfig()
     console.log(`ライバー ${config.livers.length}名 / フック ${config.hooks.length}型`)
@@ -279,8 +316,24 @@ const commands = {
         `判定は各${exp.minPostsPerVariant}本・${exp.minViewsPerVariant}再生から）`
     )
     console.log(`ffmpeg: ${hasFfmpeg() ? "あり" : "なし（build は dry-run のみ）"}`)
-    if (!config.defaults.video.fontFile) {
+    const fontFile = config.defaults.video.fontFile
+    if (!fontFile) {
       console.log("[warn] video.fontFile 未設定。日本語テロップが豆腐になるので日本語フォントを指定すること。")
+    }
+    else {
+      // 計画に出うる文字が全部そのフォントにあるか。無ければ豆腐が焼き込まれる。
+      const texts = []
+      for (const l of config.livers) {
+        texts.push(l.name, l.genre || "", l.cta || "", l.streamTime || "")
+        for (const c of l.clips) texts.push(c.title || "", c.telop || "", c.topic || "", ...(c.tags || []))
+        for (const h of config.hooks) texts.push(h.template)
+      }
+      const glyphs = missingGlyphs(fontFile, texts)
+      if (!glyphs.ok) console.log(`[warn] ${glyphs.error}`)
+      else if (glyphs.missing.length) {
+        console.log(`[warn] フォントに無い文字（豆腐になる）: ${glyphs.missing.join("")}`)
+      }
+      else console.log(`フォント: ${path.basename(fontFile)}（使用文字すべてにグリフあり）`)
     }
     console.log(`公開実行: ${process.env.LSW_ALLOW_PUBLISH === "1" ? "許可" : "禁止(既定)"}`)
   },

@@ -3,7 +3,8 @@ lsw — ライバー支援 TikTok 投稿ワークフロー
   node liver-support/bin/lsw.js <command> [options]
 
 コマンド
-  doctor    設定・素材・トークン・ffmpeg を点検する（まずこれ）
+  doctor    設定・素材・トークン・ffmpeg・フォントを点検する（まずこれ）
+  verify    実際に ffmpeg を回して、出てきた動画の中身を検査する
   plan      素材 × フック × 投稿枠 を割り当てて投稿計画を作る
   prompts   AI生成素材レーンのプロンプト表を出す
   build     計画から動画を組み立てる（既定 dry-run: ffmpeg コマンドを出力）
@@ -25,6 +26,8 @@ lsw — ライバー支援 TikTok 投稿ワークフロー
   --experiment [false]  切り口テストの有効/無効を設定より優先して指定する
   --liver <id>      prompts の対象ライバーを絞る
   --count <n>       prompts で出すプロンプトの本数（既定 1）
+  --font <path>     verify が使うフォント（省略時は設定 → 既定の日本語フォント）
+  --dir <path>      verify の生成物の出力先（省略時は一時ディレクトリ）
 
 実行を伴う操作の前提
   build --execute    ffmpeg が必要

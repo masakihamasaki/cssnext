@@ -54,6 +54,7 @@ node liver-support/bin/lsw.js publish
 - **queue** 1行1投稿の JSONL。以降の工程はこのファイルだけを見る
 - **publish** TikTok Content Posting API。既定は本人の下書き（inbox）へ送る
 - **report** 結果 CSV をフック型別に集計し、次にどの型を増やすかの材料にする
+- **verify** 実際に ffmpeg を1本焼いて、出てきた動画の中身を測る（CI で毎回走る）
 
 ## 切り口テストとAI生成素材
 
@@ -98,8 +99,31 @@ AI生成素材は本人が映らない補助映像（グッズカット・背景
 - 動画を実際に出力するなら ffmpeg、日本語テロップには日本語フォント（`video.fontFile`）
 - 投稿するならアカウントごとの TikTok アクセストークン（設定の `tokenEnv` が指す環境変数）
 
-## テスト
+## 検証
+
+動画は「コマンドが組み立てられた」ことと「意図した動画になった」ことが別物で、
+後者は単体テストでは分からない。そこを埋めるのが `verify`。
 
 ```sh
-node --test "liver-support/test/*.test.js"
+node --test "liver-support/test/*.test.js"   # 依存ゼロ、node:test のみ
+node liver-support/bin/lsw.js verify          # 実際に1本焼いて中身を測る
 ```
+
+`verify` が見ているもの:
+
+| 項目 | 落ちるとどうなるか |
+| --- | --- |
+| フォントのグリフ被覆 | テロップが豆腐（□□□）のまま投稿される |
+| 解像度 / fps / pix_fmt | 縦動画として再生されない |
+| 尺 = フック + 本編 | 尺が想定とずれる（`-ss` と `-t` の事故） |
+| 音声トラック | 無音で投稿される |
+| 文字が実際に描画されているか | 真っ黒なフック画面が出る |
+| 無音素材でも壊れないか | concat が片方の音声を失って落ちる |
+
+数値が通っても見た目の違和感は人にしか分からないので、目視用のフレームも書き出す。
+
+アップロード経路（チャンク分割・Content-Range の連続性・バイト一致）は、
+モックサーバを立てて実際に 70MB を流す形で `test/upload.test.js` が検証している。
+
+これらは `.github/workflows/liver-support.yml` から毎回実行され、
+焼いた動画とフレームは成果物として残る。

@@ -128,6 +128,7 @@ function buildPlan(config, options) {
           hookText: hook.text,
           hookLines: hookLines(hook.text, liver.video.telopPerLine),
           telop: segment.telop || clip.telop || hook.text,
+          telopLines: hookLines(segment.telop || clip.telop || hook.text, liver.video.telopPerLine),
           caption: caption.text,
           hashtags: caption.hashtags,
           video: liver.video,

@@ -107,7 +107,13 @@ function renderCommand(post, options) {
     output: path.resolve(opts.cwd || ".", post.output),
     textFiles: [
       { path: hookFile, content: post.hookLines.join("\n") + "\n" },
-      { path: telopFile, content: (post.telop || post.hookText) + "\n" },
+      {
+        path: telopFile,
+        // フックと同じく折り返す。折り返さないと長いテロップが画面外へ出る
+        content: (post.telopLines && post.telopLines.length
+          ? post.telopLines.join("\n")
+          : post.telop || post.hookText) + "\n",
+      },
     ],
   }
 }

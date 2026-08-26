@@ -1,0 +1,55 @@
+# liver-support の検証。
+#
+# 単体テストだけでは「意図した動画になったか」は分からないので、
+# ffmpeg を入れて実際に1本焼き、出てきた動画の中身を測るところまでを毎回走らせる。
+name: liver-support
+
+on:
+  push:
+    paths:
+      - "liver-support/**"
+      - ".github/workflows/liver-support.yml"
+  pull_request:
+    paths:
+      - "liver-support/**"
+      - ".github/workflows/liver-support.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      # ffmpeg と日本語フォント。フォントが無いとテロップが豆腐になる
+      - name: install ffmpeg and japanese font
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends ffmpeg fonts-ipafont-gothic
+          ffmpeg -version | head -1
+
+      # 依存パッケージなし。node:test だけで動く
+      - name: unit tests
+        run: node --test "liver-support/test/*.test.js"
+
+      # 実際に ffmpeg を回して、解像度・尺・音声・文字の描画まで検査する
+      - name: render verification
+        run: |
+          node liver-support/bin/lsw.js verify \
+            --font /usr/share/fonts/truetype/fonts-japanese-gothic.ttf \
+            --dir "$RUNNER_TEMP/verify"
+
+      # 数値が通っても見た目の違和感は人にしか分からないので、フレームを残す
+      - name: upload rendered frames
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: rendered-frames
+          path: |
+            ${{ runner.temp }}/verify/frame-*.png
+            ${{ runner.temp }}/verify/out.mp4
+          if-no-files-found: warn
+          retention-days: 7
