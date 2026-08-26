@@ -145,3 +145,31 @@ test("生成待ちが無ければプロンプト表はその旨を出す", () =>
   const { config } = withAiClip()
   assert.match(toMarkdown(promptSheet(config, AI_PROMPTS, {})), /生成待ちの素材がない/)
 })
+
+test("宣言するチャンク構成とアップロードの分割が一致する", () => {
+  const { chunking } = require("../lib/publish")
+
+  // 64MB 以下は分割しない
+  const small = chunking(5 * 1024 * 1024)
+  assert.strictEqual(small.total_chunk_count, 1)
+  assert.strictEqual(small.chunk_size, 5 * 1024 * 1024)
+
+  // 超えたら 10MB 単位。init が宣言した構成でファイル全体をちょうど覆えること
+  const big = 150 * 1024 * 1024
+  const { chunk_size, total_chunk_count } = chunking(big)
+  assert.ok(total_chunk_count > 1)
+  let covered = 0
+  for (let i = 0; i < total_chunk_count; i++) {
+    const start = i * chunk_size
+    const end = i === total_chunk_count - 1 ? big - 1 : start + chunk_size - 1
+    assert.strictEqual(start, covered, `チャンク ${i} が前のチャンクと連続していない`)
+    covered = end + 1
+  }
+  assert.strictEqual(covered, big, "チャンクの合計がファイルサイズと一致しない")
+
+  // initBody も同じ構成を宣言する
+  const body = initBody({ id: "x", caption: "c" }, big, "inbox")
+  assert.strictEqual(body.source_info.chunk_size, chunk_size)
+  assert.strictEqual(body.source_info.total_chunk_count, total_chunk_count)
+  assert.strictEqual(body.source_info.video_size, big)
+})

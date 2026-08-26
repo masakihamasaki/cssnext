@@ -15,7 +15,16 @@ const fs = require("fs")
  */
 
 const API = "https://open.tiktokapis.com/v2"
+// 分割時の1チャンク。これ以下のファイルは分割せず1チャンクとして送る。
 const CHUNK = 10 * 1024 * 1024
+// 1チャンクで送れる上限。これを超えるファイルだけ CHUNK 単位に分割する。
+const SINGLE_MAX = 64 * 1024 * 1024
+
+/** init で宣言するチャンク構成。アップロード側と必ず同じ計算を使う。 */
+function chunking(size) {
+  if (size <= SINGLE_MAX) return { chunk_size: size, total_chunk_count: 1 }
+  return { chunk_size: CHUNK, total_chunk_count: Math.ceil(size / CHUNK) }
+}
 
 function initEndpoint(mode) {
   return mode === "direct"
@@ -24,12 +33,10 @@ function initEndpoint(mode) {
 }
 
 function initBody(entry, size, mode, opts) {
-  const source_info = {
-    source: "FILE_UPLOAD",
-    video_size: size,
-    chunk_size: Math.min(size, CHUNK),
-    total_chunk_count: Math.max(1, Math.ceil(size / CHUNK)),
-  }
+  const source_info = Object.assign(
+    { source: "FILE_UPLOAD", video_size: size },
+    chunking(size)
+  )
   if (mode !== "direct") return { source_info }
   const post_info = {
     title: entry.caption,
@@ -77,6 +84,33 @@ function describe(entry, mode, ai) {
   }
 }
 
+/**
+ * 動画本体のアップロード。
+ * init で宣言したチャンク構成と1バイトもずれてはいけないので、同じ chunking() から組み立てる。
+ * @returns {Promise<string|null>} 失敗理由。成功なら null
+ */
+async function upload(url, file, size) {
+  const { chunk_size, total_chunk_count } = chunking(size)
+  const buf = fs.readFileSync(file)
+  for (let i = 0; i < total_chunk_count; i++) {
+    const start = i * chunk_size
+    // 最後のチャンクは端数を全部飲む
+    const end = i === total_chunk_count - 1 ? size - 1 : start + chunk_size - 1
+    const res = await fetch(url, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "video/mp4",
+        "Content-Range": `bytes ${start}-${end}/${size}`,
+      },
+      body: buf.subarray(start, end + 1),
+    })
+    if (!res.ok) {
+      return `upload 失敗: HTTP ${res.status}（チャンク ${i + 1}/${total_chunk_count}）`
+    }
+  }
+  return null
+}
+
 async function publish(entry, opts) {
   const mode = (opts && opts.mode) || "inbox"
   const ai = (opts && opts.ai) || {}
@@ -106,19 +140,8 @@ async function publish(entry, opts) {
   }
 
   const { publish_id, upload_url } = init.data
-  const buf = fs.readFileSync(entry.video)
-  const uploadRes = await fetch(upload_url, {
-    method: "PUT",
-    headers: {
-      "Content-Type": "video/mp4",
-      "Content-Length": String(size),
-      "Content-Range": `bytes 0-${size - 1}/${size}`,
-    },
-    body: buf,
-  })
-  if (!uploadRes.ok) {
-    return { ok: false, error: `upload 失敗: HTTP ${uploadRes.status}`, publishId: publish_id }
-  }
+  const failed = await upload(upload_url, entry.video, size)
+  if (failed) return { ok: false, error: failed, publishId: publish_id }
 
   const statusRes = await fetch(`${API}/post/publish/status/fetch/`, {
     method: "POST",
@@ -129,4 +152,4 @@ async function publish(entry, opts) {
   return { ok: true, publishId: publish_id, status: status.data || status }
 }
 
-module.exports = { publish, describe, initBody, initEndpoint, aiGuard }
+module.exports = { publish, describe, initBody, initEndpoint, aiGuard, chunking }
