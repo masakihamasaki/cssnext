@@ -27,6 +27,18 @@ class ReadingsTest(unittest.TestCase):
         self.assertEqual(c.convert("ＤＸ推進"), "ディーエックス推進")
         self.assertEqual(c.convert("XYZ社"), "エックスワイゼット社")
 
+    def test_mixed_digits_and_caps_words(self):
+        c = Converter()
+        self.assertEqual(c.convert("D2CとTikTok LIVE"), "ディートゥーシーとティックトック ライブ")
+
+    def test_urls_and_emails_are_kept(self):
+        c = Converter()
+        out = c.convert("詳しくは https://example.com/a1 か info" + "@example.com へ。2件")
+        self.assertIn("https://example.com/a1", out)
+        self.assertIn("info" + "@example.com", out)
+        self.assertTrue(out.endswith("二件"))
+        self.assertIn("https://example.com/a1", c.unknown)
+
     def test_unknown_words_are_kept_and_reported(self):
         c = Converter()
         self.assertEqual(c.convert("Higgsfieldを使う"), "Higgsfieldを使う")

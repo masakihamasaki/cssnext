@@ -92,6 +92,9 @@ def load_dictionary(extra_paths=()):
     return load_dictionaries(extra_paths)[0]
 
 
+# E-mail addresses and URLs are left untouched (and reported): reading them
+# aloud character by character is rarely what a narration needs.
+SKIP_RE = re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+|https?://\S+|www\.\S+")
 NUMBER_RE = re.compile(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?")
 WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9&.'+\-]*[A-Za-z0-9+]|[A-Za-z]")
 
@@ -159,6 +162,14 @@ class Converter:
             "０１２３４５６７８９ＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ"
             "ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚ",
             "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"))
+        kept = []
+
+        def hold(m):
+            kept.append(m.group(0))
+            self.unknown.add(m.group(0))
+            return "\x00%d\x00" % (len(kept) - 1)
+
+        text = SKIP_RE.sub(hold, text)
         text = WORD_RE.sub(self._word, text)
-        text = NUMBER_RE.sub(self._number, text)
-        return text
+        text = NUMBER_RE.sub(lambda m: m.group(0) if m.start() and text[m.start() - 1] == "\x00" else self._number(m), text)
+        return re.sub(r"\x00(\d+)\x00", lambda m: kept[int(m.group(1))], text)
