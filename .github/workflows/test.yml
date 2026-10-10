@@ -1,0 +1,27 @@
+name: test
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      # test/cli.watcher.js skips itself on CI; it hangs when it cannot kill its child.
+      TRAVIS: "true"
+    steps:
+      - uses: actions/checkout@v4
+      # Modern Node/npm does the install; scripts/setup-legacy-env.sh then puts
+      # Node 0.12 on PATH to run the 2015-era test suite.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Set up Node 0.12 and dependencies
+        run: scripts/setup-legacy-env.sh | tail -n 1 >> "$GITHUB_PATH"
+      - run: node --version
+      - run: npm test
