@@ -15,14 +15,19 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 NODE_VERSION=v0.12.18
+NODE_SHA256=990b3b39b6290000da1c9fdb5352c2e81fca4e6eeaecfce77c46b3cea1a68dba
 NODE_DIR="${NODE_DIR:-$HOME/.local/node-$NODE_VERSION}"
 REGISTRY_DATE=2015-08-01
 
 # 1. Node 0.12 (used to run lint and tests; modern npm still does the install).
 if [ ! -x "$NODE_DIR/bin/node" ]; then
+  tarball=$(mktemp)
+  curl -sSfL -o "$tarball" "https://nodejs.org/dist/$NODE_VERSION/node-$NODE_VERSION-linux-x64.tar.gz"
+  # From https://nodejs.org/dist/v0.12.18/SHASUMS256.txt
+  echo "$NODE_SHA256  $tarball" | sha256sum -c - >&2
   mkdir -p "$NODE_DIR"
-  curl -sSfL "https://nodejs.org/dist/$NODE_VERSION/node-$NODE_VERSION-linux-x64.tar.gz" \
-    | tar xz -C "$NODE_DIR" --strip-components=1
+  tar xzf "$tarball" -C "$NODE_DIR" --strip-components=1
+  rm -f "$tarball"
 fi
 
 # 2. Dependencies. Skip if already installed (cached container state).
