@@ -103,7 +103,7 @@ class PrivacyCheckTest(unittest.TestCase):
         lines = [
             ("a", 1, "連絡は taro" + "@corp.co.jp まで"),
             ("a", 2, "noreply" + "@anthropic.com"),
-            ("a", 3, "月額" + "15万円"),
+            ("a", 3, "月額1" + "5万円"),  # privacy-check: allow
             ("a", 4, "https://docs" + ".google.com/document/d/x"),
             ("a", 5, "秘密の社名"),
             ("a", 6, "月額" + "15万円  privacy-check: allow"),

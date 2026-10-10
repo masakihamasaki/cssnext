@@ -26,7 +26,7 @@ PATTERNS = [
     ("メールアドレス", re.compile(r"[\w.+-]+@[\w-]+(?:\.[\w-]+)+")),
     ("電話番号", re.compile(r"(?<!\d)0\d{1,4}-\d{1,4}-\d{3,4}(?!\d)")),
     ("金額", re.compile(r"\d[\d,]*(?:\.\d+)?\s*(?:万|億)?\s*円")),
-    ("非公開リンク", re.compile(r"(docs|drive|mail)\.google\.com/|\.slack\.com/archives|hennge|secure-transfer", re.I)),
+    ("非公開リンク", re.compile(r"(docs|drive|mail)\.google\.com/|\.slack\.com/archives|hennge|secure-transfer", re.I)),  # privacy-check: allow
     ("DriveのファイルID", re.compile(r"(?<![\w-])1[A-Za-z0-9_-]{32,}(?![\w-])")),
 ]
 ALLOW_MARK = "privacy-check: allow"
@@ -53,6 +53,11 @@ def added_lines(base, cached):
         elif line.startswith("+") and path:
             yield path, num, line[1:]
             num += 1
+    if not cached:
+        # New files that are not staged yet are not in `git diff`.
+        untracked = subprocess.run(["git", "ls-files", "--others", "--exclude-standard"],
+                                   capture_output=True, text=True).stdout.split()
+        yield from file_lines(p for p in untracked if os.path.isfile(p))
 
 
 def file_lines(paths):
