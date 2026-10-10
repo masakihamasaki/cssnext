@@ -25,7 +25,7 @@ from pptx.enum.text import MSO_ANCHOR, PP_ALIGN
 from pptx.util import Emu, Pt
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from readings import Converter, load_dictionary  # noqa: E402
+from readings import Converter, load_dictionaries  # noqa: E402
 
 SLIDE_W, SLIDE_H = Emu(12192000), Emu(6858000)  # 16:9
 END_PUNCT = "。！？!?"
@@ -135,7 +135,7 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     os.makedirs(args.out_dir, exist_ok=True)
-    conv = Converter(load_dictionary(args.dict))
+    conv = Converter(*load_dictionaries(args.dict))
     sentences, long_lines = [], []
     for s in split_sentences(read_source(args.source)):
         spoken = conv.convert(s)

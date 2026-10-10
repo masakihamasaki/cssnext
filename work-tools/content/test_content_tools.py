@@ -36,6 +36,17 @@ class ReadingsTest(unittest.TestCase):
         c = Converter({"foo": "フー"})
         self.assertEqual(c.convert("Foo"), "フー")
 
+    def test_phrases(self):
+        c = Converter()
+        self.assertEqual(c.convert("事業承継の話"), "事業しょうけいの話")
+        c = Converter({}, {"東葛": "とうかつ", "東葛地域": "とうかつちいき"})
+        self.assertEqual(c.convert("東葛地域と東葛"), "とうかつちいきととうかつ")
+
+    def test_missing_private_dictionary_is_an_error(self):
+        from readings import load_dictionaries
+        with self.assertRaises(FileNotFoundError):
+            load_dictionaries(["/nonexistent/private.json"])
+
 
 class NarrationTest(unittest.TestCase):
     def test_split(self):
@@ -74,14 +85,31 @@ class NarrationTest(unittest.TestCase):
 class LintTest(unittest.TestCase):
     def test_check(self):
         spec = {"min_chars": 50, "required": ["出典"], "banned": ["必ず"], "numbers_need_source": True}
-        n, issues = manuscript_lint.check("売上は100万円です。必ず伸びます。", spec)
+        n, issues = manuscript_lint.check("売上は100万円です。必ず伸びます。", spec)  # privacy-check: allow
         joined = "\n".join(issues)
         self.assertIn("字数不足", joined)
         self.assertIn("必要な要素なし: 出典", joined)
         self.assertIn("禁止表現「必ず」", joined)
         self.assertIn("数字の出典なし", joined)
-        _, ok = manuscript_lint.check("統計によると100万円です。", {"numbers_need_source": True})
+        _, ok = manuscript_lint.check("統計によると100万円です。", {"numbers_need_source": True})  # privacy-check: allow
         self.assertEqual(ok, [])
+
+
+class PrivacyCheckTest(unittest.TestCase):
+    def test_scan(self):
+        import sys
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+        import privacy_check
+        lines = [
+            ("a", 1, "連絡は taro" + "@corp.co.jp まで"),
+            ("a", 2, "noreply" + "@anthropic.com"),
+            ("a", 3, "月額" + "15万円"),
+            ("a", 4, "https://docs" + ".google.com/document/d/x"),
+            ("a", 5, "秘密の社名"),
+            ("a", 6, "月額" + "15万円  privacy-check: allow"),
+        ]
+        found = privacy_check.scan(lines, ["秘密の社名"])
+        self.assertEqual([f[1] for f in found], [1, 3, 4, 5])
 
 
 if __name__ == "__main__":

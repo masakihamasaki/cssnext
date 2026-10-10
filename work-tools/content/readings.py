@@ -68,15 +68,28 @@ def _decimal_to_kanji(text):
     return out
 
 
-def load_dictionary(extra_paths=()):
-    """Load the bundled dictionary plus optional private ones (later wins)."""
-    words = {}
+def load_dictionaries(extra_paths=()):
+    """Load the bundled dictionary plus optional private ones (later wins).
+
+    Returns (words, phrases): "words" are English words matched whole and
+    case-insensitively; "phrases" are exact substrings replaced first, for
+    Japanese terms that text-to-speech misreads (事業承継 -> 事業しょうけい).
+    """
+    words, phrases = {}, {}
     for path in [DEFAULT_DICT, *extra_paths]:
-        if path and os.path.exists(path):
-            with open(path, encoding="utf-8") as f:
-                data = json.load(f)
-            words.update({k.lower(): v for k, v in data.get("words", {}).items()})
-    return words
+        if not path:
+            continue
+        if not os.path.exists(path):
+            raise FileNotFoundError(path)
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        words.update({k.lower(): v for k, v in data.get("words", {}).items()})
+        phrases.update(data.get("phrases", {}))
+    return words, phrases
+
+
+def load_dictionary(extra_paths=()):
+    return load_dictionaries(extra_paths)[0]
 
 
 NUMBER_RE = re.compile(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?")
@@ -84,8 +97,12 @@ WORD_RE = re.compile(r"[A-Za-z][A-Za-z0-9&.'+\-]*[A-Za-z0-9+]|[A-Za-z]")
 
 
 class Converter:
-    def __init__(self, dictionary=None):
-        self.words = dictionary if dictionary is not None else load_dictionary()
+    def __init__(self, dictionary=None, phrases=None):
+        if dictionary is None:
+            dictionary, default_phrases = load_dictionaries()
+            phrases = default_phrases if phrases is None else phrases
+        self.words = dictionary
+        self.phrases = sorted((phrases or {}).items(), key=lambda kv: -len(kv[0]))
         self.replaced = {}
         self.unknown = set()
 
@@ -131,6 +148,10 @@ class Converter:
         return result
 
     def convert(self, text):
+        for before, after in self.phrases:
+            if before in text:
+                text = text.replace(before, after)
+                self._record(before, after)
         text = text.replace("%", "パーセント").replace("％", "パーセント")
         text = re.sub(r"(?<=\d)\s*[〜~～]\s*(?=\d)", "から", text)
         # Full-width digits and letters behave like half-width ones.

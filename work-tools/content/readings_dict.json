@@ -1,5 +1,8 @@
 {
   "_comment": "Generic readings only. Put names of people, places, clients and series in a private dictionary passed with --dict.",
+  "phrases": {
+    "事業承継": "事業しょうけい"
+  },
   "words": {
     "AI": "エーアイ", "DX": "ディーエックス", "GX": "ジーエックス", "IT": "アイティー", "ICT": "アイシーティー",
     "IoT": "アイオーティー", "SaaS": "サース", "API": "エーピーアイ", "UI": "ユーアイ", "UX": "ユーエックス",

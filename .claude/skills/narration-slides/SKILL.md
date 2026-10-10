@@ -35,10 +35,10 @@ description: 記事・企画書・構想資料を、Google Vidsで読み上げ�
 2. **変換ツールで作る**（手で書き写さない）:
    ```
    python3 work-tools/content/narration.py <元原稿> --series <系列> --out-dir <出力先> \
-     [--variant <系列2>:<間隔>:<差し込む定型文>] [--dict <非公開の読み辞書.json>]
+     [--variant <系列2>:<間隔>:<差し込む定型文>] --dict <readings_private.json を保存したパス>
    ```
    - 文の分割、読み替え、長文の分割、1ファイル30枚での区切り、命名、連番の続き、系列違いの生成までツールが行う
-   - 人名・地名・社名・シリーズ固有の読みは、リポジトリに入れず `--dict` で渡す非公開の辞書に書く（形式は `work-tools/content/readings_dict.json` と同じ）
+   - 人名・地名・社名・シリーズ固有の読みは、Drive の `readings_private.json` に書く（リポジトリには入れない）
 3. ツールが出す報告（`<系列>_report_<日付>.json`）を確認する:
    - `unconverted_words`: 読みに直せなかった英単語 → 読みを決めて辞書に足し、作り直す
    - `too_long`: 分割できなかった長文 → 元原稿を直して作り直す
