@@ -76,6 +76,9 @@ def scan(lines, terms):
             for m in pat.finditer(text):
                 if label == "メールアドレス" and ALLOWED_EMAILS.search(m.group(0)):
                     continue
+                # Lowercase hex is a commit hash (e.g. a pinned action), not a Drive id.
+                if label == "DriveのファイルID" and re.fullmatch(r"[0-9a-f]+", m.group(0)):
+                    continue
                 found.append((path, num, label, m.group(0)))
         for term in terms:
             if term in text:

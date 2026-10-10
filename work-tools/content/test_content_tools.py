@@ -119,6 +119,7 @@ class PrivacyCheckTest(unittest.TestCase):
             ("a", 4, "https://docs" + ".google.com/document/d/x"),
             ("a", 5, "秘密の社名"),
             ("a", 6, "月額" + "15万円  privacy-check: allow"),
+            ("a", 7, "uses: actions/checkout@" + "11bd71901bbe5b1630ceea73d27597364c9af683"),
         ]
         found = privacy_check.scan(lines, ["秘密の社名"])
         self.assertEqual([f[1] for f in found], [1, 3, 4, 5])
