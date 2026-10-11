@@ -84,7 +84,8 @@ test("run polls with backoff until a terminal reply", async function() {
     jsonResponse(200, {
       status: "idle",
       messages: [assistant("completed",
-        "Done: https://cdn.example/a.png. Also https://cdn.example/a.png")],
+        "Done: https://cdn.example/a.png. Also https://cdn.example/a.png"),
+      ],
     }),
   ])
   var result = await t.client.run("s1", "make an image")

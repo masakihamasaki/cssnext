@@ -68,7 +68,8 @@ function messageText(message) {
 
 function assetUrls(text) {
   var seen = []
-  ;(text.match(URL_RE) || []).forEach(function(url) {
+  var matches = text.match(URL_RE) || []
+  matches.forEach(function(url) {
     url = url.replace(/[.,;]+$/, "")
     if (seen.indexOf(url) === -1) {
       seen.push(url)
@@ -120,7 +121,7 @@ async function raiseForAgentStatus(response) {
     detail = JSON.parse(raw).detail || ""
   }
   catch (e) {
-    // non-JSON body: keep raw text
+    detail = raw // non-JSON body: keep raw text
   }
   if (code === 403) {
     throw new AgentAccessDeniedError(

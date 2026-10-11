@@ -1,0 +1,8 @@
+# The Higgsfield client is a standalone modern-Node tool: it talks to an API
+# whose fields are snake_case and uses globals newer than this repo's eslint.
+globals:
+  globalThis: false
+  URLSearchParams: false
+
+rules:
+  camelcase: 0
