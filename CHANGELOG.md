@@ -1,3 +1,10 @@
+# Unreleased
+
+- Changed: upgrade to postcss-custom-selectors v2.x. Custom selectors now
+require the `:--` prefix, as the spec does (eg: `@custom-selector :--heading h1, h2;`
+then `:--heading {}`). The old `--heading` syntax is no longer transformed
+([#97](https://github.com/cssnext/cssnext/issues/97))
+
 # 1.6.0 - 2015-06-02
 
 - Added: prevent mutability issues with frozen options objects ([#147](https://github.com/cssnext/cssnext/pull/147))

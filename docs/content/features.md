@@ -31,8 +31,8 @@ that allows to replace min-/max- with `<=` & `>=` (syntax easier to read)
 
 ## [custom selectors](http://dev.w3.org/csswg/css-extensions/#custom-selectors)
 
-to create your own selectors
-([⇗](https://github.com/postcss/postcss-custom-selector)),
+to create your own selectors (eg: `@custom-selector :--heading h1, h2, h3;`)
+([⇗](https://github.com/postcss/postcss-custom-selectors)),
 
 ## [`color()`](http://dev.w3.org/csswg/css-color/#modifying-colors)
 
