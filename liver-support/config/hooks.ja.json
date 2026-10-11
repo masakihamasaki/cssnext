@@ -1,0 +1,19 @@
+{
+  "note": "フック文の型。{name}=ライバー名 {genre}=ジャンル {topic}=切り抜きの中身 {tag}=タグ {time}=配信時間帯。LLM に書かせる場合も、この type と変数をプロンプトの枠として渡す。",
+  "hooks": [
+    { "id": "kyokan-01", "type": "共感", "template": "{genre}配信でこれ、あるあるすぎる" },
+    { "id": "kyokan-02", "type": "共感", "template": "リスナーなら分かる、この空気" },
+    { "id": "kyokan-03", "type": "共感", "template": "{topic}、経験ある人いる？", "requires": ["topic"] },
+    { "id": "igai-01", "type": "意外性", "template": "{name}、こんな一面あったんだ" },
+    { "id": "igai-02", "type": "意外性", "template": "この後まさかの展開になります" },
+    { "id": "igai-03", "type": "意外性", "template": "{topic}でここまでいく？", "requires": ["topic"] },
+    { "id": "sonshitsu-01", "type": "損失回避", "template": "見逃すと一生見れないやつ" },
+    { "id": "sonshitsu-02", "type": "損失回避", "template": "この切り抜き、消える前に見て" },
+    { "id": "ninchi-01", "type": "認知獲得", "template": "{time}配信してる{name}です" },
+    { "id": "ninchi-02", "type": "認知獲得", "template": "{genre}配信、はじめて3ヶ月の現在地" },
+    { "id": "toi-01", "type": "問いかけ", "template": "この対応、正解だったと思う？" },
+    { "id": "toi-02", "type": "問いかけ", "template": "{tag}のとき、どうするのが正解？", "requires": ["tag"] },
+    { "id": "jijitsu-01", "type": "実演", "template": "{topic}を30秒で見せます", "requires": ["topic"] },
+    { "id": "jijitsu-02", "type": "実演", "template": "配信中に起きたことをそのまま" }
+  ]
+}

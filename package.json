@@ -111,7 +111,7 @@
   },
   "scripts": {
     "standalone": "browserify --standalone cssnext index.js -o dist/cssnext.js",
-    "lint": "eslint --ignore-path .gitignore .",
+    "lint": "eslint --ignore-path .eslintignore .",
     "tape": "tape test/*.js",
     "test": "npm run lint && npm run standalone && npm run tape",
     "docs-build": "babel-node docs/scripts/build",

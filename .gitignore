@@ -6,3 +6,12 @@ docs/dist
 
 # fixtures
 test/**/*.actual.css
+
+# liver-support の生成物・素材・履歴
+liver-support/build
+liver-support/state
+liver-support/assets/*
+!liver-support/assets/README.md
+
+# 実運用の設定（ライバー名・アカウント・素材パスを含む）
+liver-support/config/livers.json
