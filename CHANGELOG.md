@@ -1,3 +1,13 @@
+# 1.7.0 - unreleased
+
+- Added: warning to deprecate the previous (wrong) custom selectors syntax.
+Custom selectors were working with **and without** the `:` prefix, which
+[is incorrect according to the specs](https://github.com/postcss/postcss-custom-selectors/issues/5#issuecomment-90774654).
+You must now use `@custom-selector :--{name}` (& `:--{name}` in your selectors)
+instead of `@custom-selector --{name}` (& `--{name}`).
+The support of the syntax without `:` and the warning message will be removed
+in the next major release ([#97](https://github.com/cssnext/cssnext/issues/97))
+
 # 1.6.0 - 2015-06-02
 
 - Added: prevent mutability issues with frozen options objects ([#147](https://github.com/cssnext/cssnext/pull/147))

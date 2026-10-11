@@ -68,7 +68,8 @@ function compareFixtures(t, name, message, options) {
   }
 
   // handy thing: checkout actual in the *.actual.css file
-  fs.writeFile(fixturePath(name + ".actual"), actual)
+  // (sync: a callback-less fs.writeFile() throws on node >= 10)
+  fs.writeFileSync(fixturePath(name + ".actual"), actual)
 
   var expected = readFixture(name + ".expected")
 

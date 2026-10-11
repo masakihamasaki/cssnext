@@ -31,7 +31,8 @@ that allows to replace min-/max- with `<=` & `>=` (syntax easier to read)
 
 ## [custom selectors](http://dev.w3.org/csswg/css-extensions/#custom-selectors)
 
-to create your own selectors
+to create your own selectors, using the `:--name` syntax
+(eg: `@custom-selector :--heading h1, h2, h3;` then `:--heading {}`)
 ([⇗](https://github.com/postcss/postcss-custom-selector)),
 
 ## [`color()`](http://dev.w3.org/csswg/css-color/#modifying-colors)
@@ -116,6 +117,12 @@ Keep in mind that, as of right now, this project is intended to support new CSS 
 
 The current transformation for custom properties just aims to provide a future-proof way of using a **limited subset (to top-level `:root` selector)** of the features provided by native CSS custom properties.
 The transformation is not complete and can't be properly. By injecting selectors with new computed rules, we will break original cascade & unexpected results might happen.
+
+### Custom selectors
+
+Custom selectors must be prefixed by a colon (`:--heading`).
+cssnext used to accept the prefix-less syntax as well (`@custom-selector --heading h1, h2;` then `--heading {}`), which is [not what the specification says](https://github.com/postcss/postcss-custom-selectors/issues/5#issuecomment-90774654) and is harmful: since `--heading` is not anchored by a `:`, it also matches the end of any other selector, so `.block--heading` gets silently mangled.
+That syntax still works but now prints a deprecation warning, and it will be removed in cssnext 2.0.
 
 ### Font variant
 
