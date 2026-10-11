@@ -6,3 +6,10 @@ article h5 + p,
 article h6 + p{
   margin-top: 0;
 }
+
+/* #97: the prefix-less syntax is not supported anymore, so it must not mangle
+   selectors that happen to end with the same name (eg: BEM modifiers) */
+
+.block--modifier {
+  color: red;
+}
